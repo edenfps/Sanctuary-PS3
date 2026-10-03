@@ -788,7 +788,8 @@ public class UdpConnection : PriorityQueueMember
 
                         RawSend(buf, buf.Length);
 
-                        if (!string.IsNullOrEmpty(UdpManager.Params.ProtocolName) && !string.Equals(UdpManager.Params.ProtocolName, OtherSideProtocolName))
+                        if (!string.IsNullOrEmpty(UdpManager.Params.ProtocolName) && !string.IsNullOrEmpty(OtherSideProtocolName)
+                            && !string.Equals(UdpManager.Params.ProtocolName, OtherSideProtocolName))
                             InternalDisconnect(0, DisconnectReason.OtherProtocolName);
                     }
                     else

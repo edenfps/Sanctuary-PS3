@@ -91,4 +91,41 @@ public class ClientPcProfile : ISerializableType
                 break;
         }
     }
+
+    // game.elf sub_B08B84: profile fields, a fixed 17-slot item array,
+    // eight ability slots, then sentinel-terminated ability experience.
+    public void SerializePs3(PacketWriter writer)
+    {
+        writer.Write(Id);
+        writer.Write(NameId);
+        writer.Write(DescriptionId);
+        writer.Write(Type);
+        writer.Write(Icon);
+        writer.Write(AbilityBgImageSet);
+        writer.Write(BadgeImageSet);
+        writer.Write(ButtonImageSet);
+        writer.Write(MembersOnly);
+        writer.Write(IsCombat);
+        writer.Write(0); // PS3 profile item class entries
+        writer.Write(Unknown11);
+        writer.Write(Unknown12);
+        writer.Write(Unknown13);
+        writer.Write(Unknown14);
+        writer.Write(Unknown15);
+        writer.Write(Rank);
+        writer.Write(RankPercent);
+        writer.Write(StarsAvailable);
+        for (var slot = 0; slot < 17; slot++)
+            writer.Write(0);
+        writer.Write(StarsEarned);
+        writer.Write(8); // fixed ability slot count in sub_62040
+        for (var slot = 0; slot < 8; slot++)
+        {
+            if (slot < Abilities.Count)
+                Abilities[slot].Serialize(writer);
+            else
+                writer.Write(0); // empty ability
+        }
+        writer.Write(0); // ability experience terminator
+    }
 }

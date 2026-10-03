@@ -19,7 +19,7 @@ public class PlayerUpdatePacketPlayCompositeEffect : BasePlayerUpdatePacket, ISe
 
     public Vector4 Position;
 
-    public bool Clear;
+    public bool Unknown7;
 
     public PlayerUpdatePacketPlayCompositeEffect() : base(OpCode)
     {
@@ -42,7 +42,7 @@ public class PlayerUpdatePacketPlayCompositeEffect : BasePlayerUpdatePacket, ISe
 
         writer.Write(Position);
 
-        writer.Write(Clear);
+        writer.Write(Unknown7);
 
         return writer.Buffer;
     }

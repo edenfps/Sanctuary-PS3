@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 
-using Sanctuary.Core.Collections;
 using Sanctuary.Core.IO;
 using Sanctuary.Game.Interactions;
 using Sanctuary.Game.Zones;
@@ -24,6 +23,11 @@ public sealed class Player : ClientPcData, IEntity
     private readonly IResourceManager _resourceManager;
 
     public bool Visible { get; set; }
+
+    public bool Is2009Client { get; set; }
+    public bool IsPs3Client { get; set; }
+
+    public bool IsInFishingActivity { get; set; }
 
     public IZone Zone { get; set; }
     public ZoneTile ZoneTile { get; private set; } = ZoneTile.Empty;
@@ -43,14 +47,10 @@ public sealed class Player : ClientPcData, IEntity
     public List<FriendData> Friends { get; set; } = [];
     public List<IgnoreData> Ignores { get; set; } = [];
 
-    public ConcurrentSet<ulong> IncomingFriendRequests { get; } = [];
-
     public ConcurrentDictionary<ChatChannel, bool> ChatChannelStatus { get; set; } = [];
 
     public int StationCash { get; set; }
     public List<CoinStoreTransactionRecord> CoinStoreTransactions { get; set; } = [];
-
-    public int TimezoneOffset { get; set; }
 
     public Vector4 StartingZonePosition { get; set; }
     public Quaternion StartingZoneRotation { get; set; }
@@ -85,9 +85,13 @@ public sealed class Player : ClientPcData, IEntity
 
     public void SendTunneled(ISerializablePacket packet)
     {
+        var payload = packet.Serialize();
+        if (IsPs3Client && !Visible)
+            Console.WriteLine($"PS3 world initialization outbound {packet.GetType().Name} ({payload.Length} bytes)");
+
         var packetTunneled = new PacketTunneledClientPacket
         {
-            Payload = packet.Serialize()
+            Payload = payload
         };
 
         Send(packetTunneled);
@@ -217,6 +221,9 @@ public sealed class Player : ClientPcData, IEntity
 
         ZoneAreaId = zoneAreaId;
 
+        if (Is2009Client)
+            return;
+
         var packetPOIChangeMessage = new PacketPOIChangeMessage
         {
             ZoneId = zoneAreaId
@@ -234,7 +241,16 @@ public sealed class Player : ClientPcData, IEntity
 
         clientUpdatePacketUpdateStat.Stats.AddRange(characterStats);
 
-        SendTunneled(clientUpdatePacketUpdateStat);
+        if (Is2009Client)
+        {
+            var packet2009 = new ClientUpdatePacketUpdateStat2009();
+            packet2009.Stats.AddRange(characterStats);
+            SendTunneled(packet2009);
+        }
+        else
+        {
+            SendTunneled(clientUpdatePacketUpdateStat);
+        }
 
         foreach (var characterStat in characterStats)
         {
@@ -248,7 +264,7 @@ public sealed class Player : ClientPcData, IEntity
                     ExpectedSpeed = characterStat.Float
                 };
 
-                SendTunneledToVisible(playerUpdatePacketExpectedSpeed);
+                SendTunneledToVisible(playerUpdatePacketExpectedSpeed, sendToSelf: Is2009Client);
             }
         }
     }

@@ -51,7 +51,10 @@ public static class PacketLoginHandler
 
         var packetLoginReply = new PacketLoginReply();
 
-        if (packet.Version != _options.ClientVersion)
+        var isPs3 = packet.Version == "1.77.389.188.2194.374262";
+        if (packet.Version != _options.ClientVersion
+            && packet.Version != _options.ClientVersion2009
+            && !isPs3)
         {
             _logger.LogError("{connection} connected with a different client version. ( Guid: {guid}, ClientVersion: \"{version}\" )", connection, packet.Guid, packet.Version);
 
@@ -62,22 +65,14 @@ public static class PacketLoginHandler
             return true;
         }
 
-        if (!Guid.TryParse(packet.Ticket, out var ticket))
-        {
-            _logger.LogError("{connection} connected with an invalid ticket. ( Guid: {guid}, Ticket: \"{ticket}\" )", connection, packet.Guid, packet.Ticket);
+        var is2009 = packet.Version == _options.ClientVersion2009 || isPs3;
 
-            connection.Send(packetLoginReply);
-
-            connection.Disconnect();
-
-            return true;
-        }
-
-        // Use ticket as key.
-        connection.InitializeCipher(packet.Ticket);
+        // Use ticket as key for cipher - required to receive client packets
+        connection.InitializeCipher(packet.Ticket ?? string.Empty);
 
         using var dbContext = _dbContextFactory.CreateDbContext();
 
+        var ticketIsValid = Guid.TryParseExact(packet.Ticket, "N", out var ps3Ticket);
         var character = dbContext.Characters
             .AsNoTracking()
             .Include(x => x.Items)
@@ -90,7 +85,9 @@ public static class PacketLoginHandler
             .Include(x => x.Profiles)
                 .ThenInclude(x => x.Items)
             .AsSplitQuery()
-            .SingleOrDefault(x => x.Id == GuidHelper.GetPlayerId(packet.Guid) && x.Ticket == ticket);
+            .SingleOrDefault(x => isPs3
+                ? ticketIsValid && x.Ticket == ps3Ticket
+                : x.Id == packet.Guid);
 
         if (character is null)
         {
@@ -118,6 +115,9 @@ public static class PacketLoginHandler
         }
 #endif
 
+        if (isPs3)
+            connection.EvictCharacterForReconnect(GuidHelper.GetPlayerGuid(character.Id));
+
         if (!connection.CreatePlayerFromDatabase(character))
         {
             connection.Send(packetLoginReply);
@@ -126,6 +126,10 @@ public static class PacketLoginHandler
 
             return true;
         }
+
+        connection.Player.Is2009Client = is2009;
+        connection.Player.IsPs3Client = isPs3;
+        connection.IsPs3Client = isPs3;
 
         _loginClient.SendCharacterLogin(character.Id);
 
@@ -138,15 +142,52 @@ public static class PacketLoginHandler
         // EncounterOverworldCombatPacket
 
         connection.SendInitializationParameters();
-        connection.SendZoneDetails();
+        if (isPs3)
+        {
+            connection.SendTunneled(new PacketSendZoneDetailsPs3
+            {
+                Name = connection.Player.Zone.Name,
+                Sky = "sky.xml",
+                Id = connection.Player.Zone.Id
+            });
+        }
+        else if (is2009)
+        {
+            connection.SendTunneled(new PacketSendZoneDetails2009
+            {
+                Name = connection.Player.Zone.Name,
+                Sky = "sky.xml"
+            });
+        }
+        else
+        {
+            connection.SendZoneDetails();
+        }
         connection.ClientGameSettings();
-        connection.SendItemDefinitions();
+        if (!is2009 || isPs3)
+            connection.SendItemDefinitions();
 
         // TODO
         // AnnoucementDataSendPacket
         // AchievementObjectiveActivatedPacket - Part 2?
 
-        connection.SendSelfToClient();
+        if (isPs3)
+        {
+            connection.SendSelfToClientPs3();
+        }
+        else if (is2009)
+            connection.SendSelfToClient2009();
+        else
+            connection.SendSelfToClient();
+
+        if (is2009 && !isPs3)
+        {
+            var zoneDone = new PacketZoneDoneSendingInitialData();
+            connection.SendTunneled(zoneDone);
+
+            var preloadDone = new ClientUpdatePacketDoneSendingPreloadCharacters();
+            connection.SendTunneled(preloadDone);
+        }
 
         return true;
     }

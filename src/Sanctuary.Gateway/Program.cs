@@ -74,11 +74,13 @@ builder.ConfigureServices((hostBuilderContext, serviceCollection) =>
         var udpParams = new UdpParams
         {
             CrcBytes = 2,
-            NoDataTimeout = 30000,
+            NoDataTimeout = 300000,
             MaxConnections = 2000,
             KeepAliveDelay = 29000,
             Port = serverOptions.Port,
-            ProtocolName = "CGAPI_527"
+            // The PS3 build advertises a different CGAPI protocol name.
+            // Accept it here while the PS3 packet variant is identified.
+            ProtocolName = ""
         };
 
         if (serverOptions.UseCompression)

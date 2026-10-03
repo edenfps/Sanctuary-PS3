@@ -19,7 +19,7 @@ public class PacketLogin : IDeserializable<PacketLogin>
 
         var reader = new PacketReader(data);
 
-        if (!reader.TryRead(out short opCode) && opCode != OpCode)
+        if (!reader.TryRead(out short opCode) || opCode != OpCode)
             return false;
 
         if (!reader.TryRead(out value.Ticket))
@@ -31,7 +31,8 @@ public class PacketLogin : IDeserializable<PacketLogin>
         if (!reader.TryRead(out value.Version))
             return false;
 
-        if (!reader.TryRead(out value.Unknown))
+        // The PS3 client appends its platform identifier after the version.
+        if (reader.RemainingLength > 0 && !reader.TryRead(out value.Unknown))
             return false;
 
         return reader.RemainingLength == 0;

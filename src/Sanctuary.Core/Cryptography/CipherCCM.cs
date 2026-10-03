@@ -20,7 +20,15 @@ public sealed class CipherCCM : ICipher
 
     public bool Initialize(byte[] key)
     {
-        _aesCcm = new AesCcm(key);
+        try
+        {
+            _aesCcm = new AesCcm(key);
+        }
+        catch
+        {
+            IsInitialized = false;
+            return false;
+        }
 
         IsInitialized = true;
 

@@ -1,3 +1,10 @@
+# Sanctuary PS3 development branch
+
+This branch contains the NPUA30048 PlayStation 3 server adaptation. It includes PS3 account and character WebAPI routes, gateway packet handling, world initialization, HUD support, and map waypoint teleport support. It is a development snapshot; the PS3 game client and emulator are separate.
+
+Based on [Open-Source-Free-Realms/Sanctuary](https://github.com/Open-Source-Free-Realms/Sanctuary) through [edenfps/Sanctuary](https://github.com/edenfps/Sanctuary). The original project README follows.
+
+---
 
 <a id="readme-top"></a>
 <!-- PROJECT SHIELDS -->
@@ -263,3 +270,4 @@ Project Link: [https://github.com/Open-Source-Free-Realms/Sanctuary](https://git
 [product-screenshot]: images/screenshot.jpg
 [CSharp]: https://img.shields.io/badge/csharp-000000?style=for-the-badge&logo=csharp&logoColor=white
 [CSharp-url]: https://dotnet.microsoft.com/en-us/languages/csharp
+

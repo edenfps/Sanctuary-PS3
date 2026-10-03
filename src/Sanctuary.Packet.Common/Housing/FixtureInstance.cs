@@ -9,31 +9,30 @@ public class FixtureInstance : ISerializableType
     public ulong Guid;
     public ulong HouseGuid;
 
-    public int FixtureDefinitionId;
-
+    public int Id;
     public int Unknown4;
 
-    public Vector4 Position;
-    public Quaternion Rotation;
+    public Vector4 Unknown5;
+    public Quaternion Unknown6;
 
     public string? Unknown12;
 
-    public float Scale;
+    public float Unknown15;
 
-    public int TintId;
+    public int Unknown9;
     public int Unknown10;
 
-    public CustomizationDetail Customization = new();
+    public CustomizationDetail CustomizationDetails = new();
 
-    public Quaternion Tilt;
+    public Quaternion Unknown7;
 
-    public ulong NpcGuid;
+    public long Unknown8;
 
     public string? Unknown11;
 
     public int Unknown13;
 
-    public string? XmlData;
+    public string? Unknown14;
 
     public bool Unknown16;
 
@@ -44,30 +43,25 @@ public class FixtureInstance : ISerializableType
         writer.Write(Guid);
         writer.Write(HouseGuid);
 
-        writer.Write(FixtureDefinitionId);
-
+        writer.Write(Id);
         writer.Write(Unknown4);
 
-        writer.Write(Position);
-        writer.Write(Rotation);
+        writer.Write(Unknown5);
+        writer.Write(Unknown6);
+        writer.Write(Unknown7);
 
-        writer.Write(Tilt);
+        writer.Write(Unknown8);
 
-        writer.Write(NpcGuid);
-
-        writer.Write(TintId);
-
+        writer.Write(Unknown9);
         writer.Write(Unknown10);
 
-        Customization.Serialize(writer);
+        CustomizationDetails.Serialize(writer);
 
         writer.Write(Unknown11);
         writer.Write(Unknown12);
         writer.Write(Unknown13);
-
-        writer.Write(XmlData);
-
-        writer.Write(Scale);
+        writer.Write(Unknown14);
+        writer.Write(Unknown15);
 
         writer.Write(Unknown16);
 

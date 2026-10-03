@@ -29,7 +29,7 @@ public static class PacketClientInitializationDetailsHandler
 
         _logger.LogTrace("Received {name} packet. ( {packet} )", nameof(PacketClientInitializationDetails), packet);
 
-        connection.Player.TimezoneOffset = packet.TimezoneOffset;
+        // TODO
 
         return true;
     }

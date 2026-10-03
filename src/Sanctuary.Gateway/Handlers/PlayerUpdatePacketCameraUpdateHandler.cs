@@ -21,6 +21,9 @@ public static class PlayerUpdatePacketCameraUpdateHandler
 
     public static bool HandlePacket(GatewayConnection connection, Span<byte> data)
     {
+        if (connection.Player.Is2009Client)
+            return PlayerUpdatePacketCameraUpdate2009.TryDeserialize(data, out _);
+
         if (!PlayerUpdatePacketCameraUpdate.TryDeserialize(data, out var packet))
         {
             _logger.LogError("Failed to deserialize {packet}.", nameof(PlayerUpdatePacketCameraUpdate));

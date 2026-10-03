@@ -4,14 +4,12 @@ namespace Sanctuary.Packet.Common;
 
 public class InstancePermission : ISerializableType
 {
-    public ulong Guid;
-
-    // 3 - Can Edit
-    public int Level;
+    public ulong Unknown;
+    public int Unknown2;
 
     public void Serialize(PacketWriter writer)
     {
-        writer.Write(Guid);
-        writer.Write(Level);
+        writer.Write(Unknown);
+        writer.Write(Unknown2);
     }
 }

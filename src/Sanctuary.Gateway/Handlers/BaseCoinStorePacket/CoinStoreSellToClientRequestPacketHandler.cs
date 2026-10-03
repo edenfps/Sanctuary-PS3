@@ -87,11 +87,6 @@ public static class CoinStoreSellToClientRequestPacketHandler
             return true;
         }
 
-        var tint = packet.ItemRecord.Tint;
-
-        if (!clientItemDefinition.IsTintable)
-            tint = clientItemDefinition.Icon.TintId;
-
         using var dbContext = _dbContextFactory.CreateDbContext();
 
         var dbQuery = dbContext.Characters
@@ -99,7 +94,7 @@ public static class CoinStoreSellToClientRequestPacketHandler
             .Select(x => new
             {
                 Character = x,
-                Item = x.Items.SingleOrDefault(i => i.Definition == clientItemDefinition.Id && i.Tint == tint),
+                Item = x.Items.SingleOrDefault(i => i.Definition == clientItemDefinition.Id && i.Tint == packet.ItemRecord.Tint),
                 NextId = x.Items.Max(i => i.Id)
             })
             .SingleOrDefault();
@@ -117,7 +112,6 @@ public static class CoinStoreSellToClientRequestPacketHandler
 
         if (dbItem is not null)
         {
-            dbItem.Tint = tint;
             dbItem.Count += packet.Quantity;
         }
         else
@@ -126,7 +120,7 @@ public static class CoinStoreSellToClientRequestPacketHandler
             {
                 Id = dbQuery.NextId + 1,
                 Definition = clientItemDefinition.Id,
-                Tint = tint,
+                Tint = packet.ItemRecord.Tint,
 
                 Count = packet.Quantity
             };
@@ -145,13 +139,12 @@ public static class CoinStoreSellToClientRequestPacketHandler
             return true;
         }
 
-        var clientItem = connection.Player.Items.SingleOrDefault(x => x.Definition == clientItemDefinition.Id && x.Tint == tint);
+        var clientItem = connection.Player.Items.SingleOrDefault(x => x.Definition == clientItemDefinition.Id && x.Tint == packet.ItemRecord.Tint);
 
         var addItem = false;
 
         if (clientItem is not null)
         {
-            clientItem.Tint = dbItem.Tint;
             clientItem.Count = dbItem.Count;
         }
         else
@@ -176,8 +169,6 @@ public static class CoinStoreSellToClientRequestPacketHandler
             using var writer = new PacketWriter();
 
             clientItem.Serialize(writer);
-
-            clientItemDefinition.Serialize(writer);
 
             var clientUpdatePacketItemAdd = new ClientUpdatePacketItemAdd();
 

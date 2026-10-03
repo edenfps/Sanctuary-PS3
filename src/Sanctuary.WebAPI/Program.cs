@@ -11,6 +11,7 @@ using NLog.Extensions.Logging;
 
 using Sanctuary.Core.Configuration;
 using Sanctuary.Database;
+using Sanctuary.Game;
 using Sanctuary.WebAPI.Endpoints;
 using Sanctuary.WebAPI.Options;
 
@@ -36,6 +37,7 @@ builder.Services.AddOptionsWithValidateOnStart<WebAPIOptions>()
 
 // Database
 builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddSingleton<IResourceManager, ResourceManager>();
 
 // Logging
 builder.Logging.ClearProviders();
@@ -59,6 +61,9 @@ builder.Logging.AddNLog(nlogConfigFile);
 
 var app = builder.Build();
 
+if (!app.Services.GetRequiredService<IResourceManager>().Load())
+    throw new System.InvalidOperationException("Could not load PS3 character creation resources.");
+
 #if DEBUG
 
 app.UseHttpLogging();
@@ -69,5 +74,6 @@ app.UseHttpLogging();
 
 app.MapAuthEndpoints();
 app.MapPortraitEndpoints();
+app.MapPs3Endpoints();
 
 app.Run();

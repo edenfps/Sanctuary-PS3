@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Numerics;
@@ -35,6 +36,8 @@ public class GatewayConnection : UdpConnection
     private readonly IServiceProvider _serviceProvider;
     private readonly IResourceManager _resourceManager;
     private readonly IDbContextFactory<DatabaseContext> _dbContextFactory;
+    private readonly object _terminationLock = new();
+    private bool _terminationHandled;
 
     private ICipher _cipher;
 #pragma warning disable CS0649
@@ -43,6 +46,7 @@ public class GatewayConnection : UdpConnection
 
     // Player will only be null during login.
     public Player Player { get; private set; } = null!;
+    public bool IsPs3Client { get; set; }
 
     public string Locale { get; set; } = "en_US";
 
@@ -67,6 +71,18 @@ public class GatewayConnection : UdpConnection
 
     public override void OnTerminated()
     {
+        lock (_terminationLock)
+        {
+            if (_terminationHandled)
+                return;
+
+            _terminationHandled = true;
+            ReleasePlayer();
+        }
+    }
+
+    private void ReleasePlayer()
+    {
         var reason = DisconnectReason == DisconnectReason.OtherSideTerminated
             ? OtherSideDisconnectReason
             : DisconnectReason;
@@ -85,6 +101,15 @@ public class GatewayConnection : UdpConnection
 
         Player.Dispose();
     }
+
+    public void EvictForReconnect()
+    {
+        Disconnect();
+        OnTerminated();
+    }
+
+    public bool EvictCharacterForReconnect(ulong playerGuid) =>
+        _gatewayServer.EvictCharacterForReconnect(playerGuid, this);
 
     public override void OnRoutePacket(Span<byte> data)
     {
@@ -133,6 +158,8 @@ public class GatewayConnection : UdpConnection
 
     public void SendTunneled(ISerializablePacket packet, bool reliable = true, bool secure = false)
     {
+        if (IsPs3Client)
+            _logger.LogInformation("PS3 outbound tunneled {Packet}", packet.GetType().Name);
         var packetTunneled = new PacketTunneledClientPacket
         {
             Payload = packet.Serialize()
@@ -144,6 +171,8 @@ public class GatewayConnection : UdpConnection
     public void Send(ISerializablePacket packet, bool reliable = true, bool secure = false)
     {
         var data = packet.Serialize();
+        if (IsPs3Client)
+            _logger.LogInformation("PS3 outbound {Packet} {Length} bytes", packet.GetType().Name, data.Length);
 
         if (secure)
             InternalSendSecure(data);
@@ -233,7 +262,6 @@ public class GatewayConnection : UdpConnection
         Player.Coins = dbCharacter.Coins;
 
         Player.Birthday = dbCharacter.Created;
-        Player.PlayTime = dbCharacter.PlayTime;
 
         Player.MembershipStatus = dbCharacter.MembershipStatus;
         Player.ShowMemberNagScreen = _options.ShowMemberNagScreen;
@@ -295,7 +323,29 @@ public class GatewayConnection : UdpConnection
             }
         }
 
-        Player.ActiveProfileId = dbCharacter.ActiveProfileId;
+        if (Player.Profiles.Count == 0 && _resourceManager.Profiles.Count > 0)
+        {
+            var firstProfile = _resourceManager.Profiles.Values.First();
+            var defaultProfile = new ClientPcProfile
+            {
+                Id = firstProfile.Id,
+                NameId = firstProfile.NameId,
+                DescriptionId = firstProfile.DescriptionId,
+                Type = firstProfile.Type,
+                Icon = firstProfile.Icon,
+                AbilityBgImageSet = firstProfile.AbilityBgImageSet,
+                BadgeImageSet = firstProfile.BadgeImageSet,
+                ButtonImageSet = firstProfile.ButtonImageSet,
+                MembersOnly = firstProfile.MembersOnly,
+                ItemClasses = firstProfile.ItemClasses,
+                Rank = 1
+            };
+            Player.Profiles.Add(defaultProfile);
+            Player.ActiveProfileId = firstProfile.Id;
+        }
+
+        if (dbCharacter.ActiveProfileId > 0)
+            Player.ActiveProfileId = dbCharacter.ActiveProfileId;
 
         foreach (var dbItem in dbCharacter.Items)
         {
@@ -445,17 +495,14 @@ public class GatewayConnection : UdpConnection
 
         dbCharacter.ActiveTitleId = Player.ActiveTitle;
 
-        if (dbCharacter.LastLogin.HasValue)
-            dbCharacter.PlayTime += (int)(DateTimeOffset.UtcNow - dbCharacter.LastLogin.Value).TotalMinutes;
-
         // End ClientPcData
 
         dbCharacter.ChatBubbleForegroundColor = Player.ChatBubbleForegroundColor;
         dbCharacter.ChatBubbleBackgroundColor = Player.ChatBubbleBackgroundColor;
         dbCharacter.ChatBubbleSize = Player.ChatBubbleSize;
 
-        if (dbContext.SaveChanges() <= 0)
-            _logger.LogError("Failed to save character data to database");
+        // Zero rows means the character state has not changed since it was loaded.
+        dbContext.SaveChanges();
     }
 
     public void SendInitializationParameters()
@@ -521,6 +568,35 @@ public class GatewayConnection : UdpConnection
 
         packetSendSelfToClient.Payload = Player.Serialize();
 
+        SendTunneled(packetSendSelfToClient);
+    }
+
+    public void SendSelfToClient2009(bool includeProfiles = true)
+    {
+        var packetSendSelfToClient = new PacketSendSelfToClient();
+
+        packetSendSelfToClient.Payload = Player.Serialize2009(includeProfiles);
+
+        SendTunneled(packetSendSelfToClient);
+    }
+
+    public void SendSelfToClientPs3()
+    {
+        var packetSendSelfToClient = new PacketSendSelfToClient();
+        packetSendSelfToClient.Payload = Player.SerializePs3();
+        try
+        {
+            Directory.CreateDirectory("Logs");
+            File.WriteAllBytes(Path.Combine("Logs", "ps3-sendself-current.bin"), packetSendSelfToClient.Payload);
+        }
+        catch (IOException exception)
+        {
+            _logger.LogWarning(exception, "Could not capture PS3 SendSelf packet.");
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            _logger.LogWarning(exception, "Could not capture PS3 SendSelf packet.");
+        }
         SendTunneled(packetSendSelfToClient);
     }
 

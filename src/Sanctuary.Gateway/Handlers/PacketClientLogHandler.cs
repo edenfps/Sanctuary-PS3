@@ -29,7 +29,8 @@ public static class PacketClientLogHandler
 
         _logger.LogTrace("Received {name} packet. ( {packet} )", nameof(PacketClientLog), packet);
 
-        // TODO: Save to a separate file based on packet value
+        if (connection.IsPs3Client)
+            _logger.LogInformation("PS3 client log [{Filename}]: {Message}", packet.Filename, packet.Message);
 
         return true;
     }

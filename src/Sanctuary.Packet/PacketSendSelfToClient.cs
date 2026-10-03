@@ -20,4 +20,15 @@ public class PacketSendSelfToClient : ISerializablePacket
 
         return writer.Buffer;
     }
+
+    public byte[] SerializeNoLength()
+    {
+        using var writer = new PacketWriter();
+
+        writer.Write(OpCode);
+
+        writer.Write(Payload);
+
+        return writer.Buffer;
+    }
 }

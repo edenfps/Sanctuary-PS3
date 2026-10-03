@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Sanctuary.Core.IO;
+using Sanctuary.Game.Zones;
 using Sanctuary.Packet;
 using Sanctuary.Packet.Common;
 using Sanctuary.Packet.Common.Attributes;
@@ -37,6 +38,9 @@ public static class PacketTunneledClientPacketHandler
             return false;
         }
 
+        if (connection.IsPs3Client)
+            _logger.LogInformation("PS3 inbound tunneled opcode {OpCode} ({Length} bytes)", opCode, packet.Payload.Length);
+
         var handled = opCode switch
         {
             PacketClientFinishedLoading.OpCode => PacketClientFinishedLoadingHandler.HandlePacket(connection),
@@ -44,22 +48,29 @@ public static class PacketTunneledClientPacketHandler
             BaseChatPacket.OpCode => BaseChatPacketHandler.HandlePacket(connection, reader),
             BaseCommandPacket.OpCode => BaseCommandPacketHandler.HandlePacket(connection, reader),
             BasePlayerUpdatePacket.OpCode => BasePlayerUpdatePacketHandler.HandlePacket(connection, reader),
+            BaseMiniGamePacket.OpCode => BaseMiniGamePacketHandler.HandlePacket(connection, reader),
             BaseAbilityPacket.OpCode => BaseAbilityPacketHandler.HandlePacket(connection, reader),
+            BaseVehicleRacePacket.OpCode => BaseVehicleRacePacketHandler.HandlePacket(connection, reader),
+            BaseVehicleDemolitionDerbyPacket.OpCode => BaseVehicleDemolitionDerbyPacketHandler.HandlePacket(connection, reader),
             BaseInventoryPacket.OpCode => BaseInventoryPacketHandler.HandlePacket(connection, reader),
             PacketGameTimeSync.OpCode => PacketGameTimeSyncHandler.HandlePacket(connection, packet.Payload),
             PacketBaseInGamePurchase.OpCode => PacketBaseInGamePurchaseHandler.HandlePacket(connection, reader),
             BaseQuickChatPacket.OpCode => BaseQuickChatPacketHandler.HandlePacket(connection, reader),
             PacketZoneTeleportRequest.OpCode => PacketZoneTeleportRequestHandler.HandlePacket(connection, packet.Payload),
+            57 when connection.Player.Is2009Client && connection.Player.Zone is StartingZone startingZone => SendPointOfInterests(startingZone, connection),
             PacketClientMetrics.OpCode => PacketClientMetricsHandler.HandlePacket(connection, packet.Payload),
             PacketClientLog.OpCode => PacketClientLogHandler.HandlePacket(connection, packet.Payload),
             PacketZoneSafeTeleportRequest.OpCode => PacketZoneSafeTeleportRequestHandler.HandlePacket(connection, packet.Payload),
             PlayerUpdatePacketUpdatePosition.OpCode => PlayerUpdatePacketUpdatePositionHandler.HandlePacket(connection, packet.Payload),
             PlayerUpdatePacketCameraUpdate.OpCode => PlayerUpdatePacketCameraUpdateHandler.HandlePacket(connection, packet.Payload),
+            PlayerUpdatePacketUpdatePosition2009.OpCode when connection.Player.Is2009Client => PlayerUpdatePacketUpdatePositionHandler.Handle2009Packet(connection, packet.Payload),
             BaseHousingPacket.OpCode => BaseHousingPacketHandler.HandlePacket(connection, reader),
             BasePlayerTitlePacket.OpCode => BasePlayerTitlePacketHandler.HandlePacket(connection, reader),
             BaseFotomatPacket.OpCode => BaseFotomatPacketHandler.HandlePacket(connection, reader),
             PlayerUpdatePacketJump.OpCode => PlayerUpdatePacketJumpHandler.HandlePacket(connection, packet.Payload),
             BaseCoinStorePacket.OpCode => BaseCoinStorePacketHandler.HandlePacket(connection, reader),
+            BaseActivityServicePacket.OpCode => BaseActivityServicePacketHandler.HandlePacket(connection, reader, 2),
+            BaseFishingPacket.OpCode => BaseFishingPacketHandler.HandlePacket(connection, reader),
             MountBasePacket.OpCode => MountBasePacketHandler.HandlePacket(connection, reader),
             PacketClientInitializationDetails.OpCode => PacketClientInitializationDetailsHandler.HandlePacket(connection, packet.Payload),
             BaseNameChangePacket.OpCode => BaseNameChangePacketHandler.HandlePacket(connection, reader),
@@ -75,5 +86,11 @@ public static class PacketTunneledClientPacketHandler
 #endif
 
         return handled;
+    }
+
+    private static bool SendPointOfInterests(StartingZone zone, GatewayConnection connection)
+    {
+        zone.SendPointOfInterests(connection.Player);
+        return true;
     }
 }

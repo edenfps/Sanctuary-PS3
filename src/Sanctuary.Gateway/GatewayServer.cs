@@ -28,6 +28,21 @@ public class GatewayServer : UdpManager<GatewayConnection>
         return true;
     }
 
+    public bool EvictCharacterForReconnect(ulong playerGuid, GatewayConnection incoming)
+    {
+        foreach (var connection in ConnectionList)
+        {
+            if (ReferenceEquals(connection, incoming) || connection.Player?.Guid != playerGuid)
+                continue;
+
+            _logger.LogInformation("Replacing stale connection for player {playerGuid}.", playerGuid);
+            connection.EvictForReconnect();
+            return true;
+        }
+
+        return false;
+    }
+
     public void OnStarted()
     {
         _resourceManager.Zones.CollectionChanged += Zones_CollectionChanged;

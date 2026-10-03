@@ -23,17 +23,23 @@ public static class PacketClientFinishedLoadingHandler
     {
         _logger.LogTrace("Received {name} packet.", nameof(PacketClientFinishedLoading));
 
-        connection.Player.Visible = true;
+        var player = connection.Player;
 
-        connection.Player.UpdatePosition(connection.Player.Position, connection.Player.Rotation);
+        if (connection.IsPs3Client)
+            _logger.LogInformation("PS3 client finished loading: zone {ZoneType} ({ZoneId}), player {PlayerGuid}.",
+                player.Zone.GetType().Name, player.Zone.Id, player.Guid);
 
-        var mount = connection.Player.Mount;
+        player.Visible = true;
+
+        player.UpdatePosition(player.Position, player.Rotation);
+
+        var mount = player.Mount;
 
         if (mount is not null)
         {
             mount.Visible = true;
 
-            mount.UpdatePosition(connection.Player.Position, connection.Player.Rotation);
+            mount.UpdatePosition(player.Position, player.Rotation);
 
             var packetMountResponse = new PacketMountResponse();
 
@@ -46,14 +52,12 @@ public static class PacketClientFinishedLoadingHandler
 
             packetMountResponse.Unknown = 1;
 
-            packetMountResponse.CompositeEffectId = 46; // PFX_Teleport_Flash
-
-            // packetMountResponse.NameVerticalOffset = mountDefinition.NameVerticalOffset;
+            packetMountResponse.CompositeEffectId = 46;
 
             connection.Player.SendTunneled(packetMountResponse);
         }
 
-        connection.Player.Zone.OnClientFinishedLoading(connection.Player);
+        player.Zone.OnClientFinishedLoading(player);
 
         return true;
     }

@@ -27,6 +27,10 @@ public static class PacketClientIsReadyHandler
     {
         _logger.LogTrace("Received {name} packet.", nameof(PacketClientIsReady));
 
+        if (connection.IsPs3Client)
+            _logger.LogInformation("PS3 client ready: zone {ZoneType} ({ZoneId}), player {PlayerGuid}.",
+                connection.Player.Zone.GetType().Name, connection.Player.Zone.Id, connection.Player.Guid);
+
         connection.Player.Zone.OnClientIsReady(connection.Player);
 
         return true;

@@ -29,10 +29,7 @@ public static class PacketGameTimeSyncHandler
 
         _logger.LogTrace("Received {name} packet. ( {packet} )", nameof(PacketGameTimeSync), packet);
 
-        var time = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                   - connection.Player.TimezoneOffset;
-
-        packet.Time = time;
+        packet.Time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         packet.ServerRate = 8;
         packet.UseClientTime = false;
 

@@ -31,6 +31,7 @@ public static class WallOfDataBasePacketHandler
         return opCode switch
         {
             WallOfDataUIEventPacket.OpCode => WallOfDataUIEventPacketHandler.HandlePacket(connection, reader.Span),
+            WallOfDataPlayerKeyboardPacket.OpCode => WallOfDataPlayerKeyboardPacketHandler.HandlePacket(connection, reader.Span),
             _ => false
         };
     }
