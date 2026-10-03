@@ -49,6 +49,7 @@ public static class PacketZoneTeleportRequestHandler
             Teleport = true
         };
 
+        connection.Player.UpdatePosition(clientUpdatePacketUpdateLocation.Position, clientUpdatePacketUpdateLocation.Rotation);
         connection.SendTunneled(clientUpdatePacketUpdateLocation);
 
         return true;

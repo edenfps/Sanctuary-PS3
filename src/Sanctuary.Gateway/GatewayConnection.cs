@@ -233,7 +233,6 @@ public class GatewayConnection : UdpConnection
         Player.Coins = dbCharacter.Coins;
 
         Player.Birthday = dbCharacter.Created;
-        Player.PlayTime = dbCharacter.PlayTime;
 
         Player.MembershipStatus = dbCharacter.MembershipStatus;
         Player.ShowMemberNagScreen = _options.ShowMemberNagScreen;
@@ -295,7 +294,29 @@ public class GatewayConnection : UdpConnection
             }
         }
 
-        Player.ActiveProfileId = dbCharacter.ActiveProfileId;
+        if (Player.Profiles.Count == 0 && _resourceManager.Profiles.Count > 0)
+        {
+            var firstProfile = _resourceManager.Profiles.Values.First();
+            var defaultProfile = new ClientPcProfile
+            {
+                Id = firstProfile.Id,
+                NameId = firstProfile.NameId,
+                DescriptionId = firstProfile.DescriptionId,
+                Type = firstProfile.Type,
+                Icon = firstProfile.Icon,
+                AbilityBgImageSet = firstProfile.AbilityBgImageSet,
+                BadgeImageSet = firstProfile.BadgeImageSet,
+                ButtonImageSet = firstProfile.ButtonImageSet,
+                MembersOnly = firstProfile.MembersOnly,
+                ItemClasses = firstProfile.ItemClasses,
+                Rank = 1
+            };
+            Player.Profiles.Add(defaultProfile);
+            Player.ActiveProfileId = firstProfile.Id;
+        }
+
+        if (dbCharacter.ActiveProfileId > 0)
+            Player.ActiveProfileId = dbCharacter.ActiveProfileId;
 
         foreach (var dbItem in dbCharacter.Items)
         {
@@ -445,9 +466,6 @@ public class GatewayConnection : UdpConnection
 
         dbCharacter.ActiveTitleId = Player.ActiveTitle;
 
-        if (dbCharacter.LastLogin.HasValue)
-            dbCharacter.PlayTime += (int)(DateTimeOffset.UtcNow - dbCharacter.LastLogin.Value).TotalMinutes;
-
         // End ClientPcData
 
         dbCharacter.ChatBubbleForegroundColor = Player.ChatBubbleForegroundColor;
@@ -520,6 +538,15 @@ public class GatewayConnection : UdpConnection
         var packetSendSelfToClient = new PacketSendSelfToClient();
 
         packetSendSelfToClient.Payload = Player.Serialize();
+
+        SendTunneled(packetSendSelfToClient);
+    }
+
+    public void SendSelfToClient2009()
+    {
+        var packetSendSelfToClient = new PacketSendSelfToClient();
+
+        packetSendSelfToClient.Payload = Player.Serialize2009();
 
         SendTunneled(packetSendSelfToClient);
     }

@@ -1,10 +1,11 @@
 {
   "Server": {
     "Port": 20260,
-    "UseCompression": true,
+    "UseCompression": false,
 
     "Environment": "live",
     "ClientVersion": "1.910.1.530630",
+    "ClientVersion2009": "1.227.365.326.1135.280846",
 
     "ServerAddress": "127.0.0.1:20260",
 

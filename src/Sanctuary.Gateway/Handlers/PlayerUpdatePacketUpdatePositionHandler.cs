@@ -1,6 +1,7 @@
 ﻿using System;
 
 using Microsoft.Extensions.DependencyInjection;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 
 using Sanctuary.Packet;
@@ -34,6 +35,17 @@ public static class PlayerUpdatePacketUpdatePositionHandler
 
         connection.Player.SendTunneledToVisible(packet);
 
+        return true;
+    }
+
+    public static bool Handle2009Packet(GatewayConnection connection, Span<byte> data)
+    {
+        if (!PlayerUpdatePacketUpdatePosition2009.TryDeserialize(data, out var packet))
+            return false;
+
+        var position = new Vector4(packet.Position, 1f);
+        connection.Player.Mount?.UpdatePosition(position, connection.Player.Rotation);
+        connection.Player.UpdatePosition(position, connection.Player.Rotation);
         return true;
     }
 }

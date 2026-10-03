@@ -51,7 +51,8 @@ public static class PacketLoginHandler
 
         var packetLoginReply = new PacketLoginReply();
 
-        if (packet.Version != _options.ClientVersion)
+        if (packet.Version != _options.ClientVersion
+            && packet.Version != _options.ClientVersion2009)
         {
             _logger.LogError("{connection} connected with a different client version. ( Guid: {guid}, ClientVersion: \"{version}\" )", connection, packet.Guid, packet.Version);
 
@@ -62,19 +63,10 @@ public static class PacketLoginHandler
             return true;
         }
 
-        if (!Guid.TryParse(packet.Ticket, out var ticket))
-        {
-            _logger.LogError("{connection} connected with an invalid ticket. ( Guid: {guid}, Ticket: \"{ticket}\" )", connection, packet.Guid, packet.Ticket);
+        var is2009 = packet.Version == _options.ClientVersion2009;
 
-            connection.Send(packetLoginReply);
-
-            connection.Disconnect();
-
-            return true;
-        }
-
-        // Use ticket as key.
-        connection.InitializeCipher(packet.Ticket);
+        // Use ticket as key for cipher - required to receive client packets
+        connection.InitializeCipher(packet.Ticket ?? string.Empty);
 
         using var dbContext = _dbContextFactory.CreateDbContext();
 
@@ -90,7 +82,7 @@ public static class PacketLoginHandler
             .Include(x => x.Profiles)
                 .ThenInclude(x => x.Items)
             .AsSplitQuery()
-            .SingleOrDefault(x => x.Id == GuidHelper.GetPlayerId(packet.Guid) && x.Ticket == ticket);
+            .SingleOrDefault(x => x.Id == packet.Guid);
 
         if (character is null)
         {
@@ -127,6 +119,8 @@ public static class PacketLoginHandler
             return true;
         }
 
+        connection.Player.Is2009Client = is2009;
+
         _loginClient.SendCharacterLogin(character.Id);
 
         packetLoginReply.Success = true;
@@ -138,15 +132,39 @@ public static class PacketLoginHandler
         // EncounterOverworldCombatPacket
 
         connection.SendInitializationParameters();
-        connection.SendZoneDetails();
+        if (is2009)
+        {
+            connection.SendTunneled(new PacketSendZoneDetails2009
+            {
+                Name = connection.Player.Zone.Name,
+                Sky = "sky.xml"
+            });
+        }
+        else
+        {
+            connection.SendZoneDetails();
+        }
         connection.ClientGameSettings();
-        connection.SendItemDefinitions();
+        if (!is2009)
+            connection.SendItemDefinitions();
 
         // TODO
         // AnnoucementDataSendPacket
         // AchievementObjectiveActivatedPacket - Part 2?
 
-        connection.SendSelfToClient();
+        if (is2009)
+            connection.SendSelfToClient2009();
+        else
+            connection.SendSelfToClient();
+
+        if (is2009)
+        {
+            var zoneDone = new PacketZoneDoneSendingInitialData();
+            connection.SendTunneled(zoneDone);
+
+            var preloadDone = new ClientUpdatePacketDoneSendingPreloadCharacters();
+            connection.SendTunneled(preloadDone);
+        }
 
         return true;
     }

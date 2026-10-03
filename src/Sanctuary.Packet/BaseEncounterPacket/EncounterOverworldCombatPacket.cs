@@ -6,7 +6,7 @@ public class EncounterOverworldCombatPacket : BaseEncounterPacket, ISerializable
 {
     public new const short OpCode = 132;
 
-    public bool InWorldCombat;
+    public bool Unknown3;
 
     public EncounterOverworldCombatPacket() : base(OpCode)
     {
@@ -18,7 +18,7 @@ public class EncounterOverworldCombatPacket : BaseEncounterPacket, ISerializable
 
         Write(writer);
 
-        writer.Write(InWorldCombat);
+        writer.Write(Unknown3);
 
         return writer.Buffer;
     }

@@ -477,7 +477,6 @@ public class ClientPcData
 
         writer.Write(Birthday);
         writer.Write(Age);
-
         writer.Write(PlayTime);
 
         writer.Write(IsUnderage);
@@ -561,5 +560,231 @@ public class ClientPcData
         writer.Write(0); // TODO ClientNudges
 
         return writer.Buffer;
+    }
+
+    public byte[] Serialize2009()
+    {
+        using var writer = new PacketWriter();
+
+        writer.Write(LaunchTicket);
+        writer.Write(Guid);
+
+        writer.Write(Model);
+
+        writer.Write(Head);
+        writer.Write(Hair);
+
+        writer.Write(HairColor);
+        writer.Write(EyeColor);
+
+        writer.Write(SkinTone);
+
+        writer.Write(FacePaint);
+        writer.Write(ModelCustomization);
+
+        // 2009: Position/Rotation before Name, no HeadId/etc ints
+        writer.Write(Position);
+        writer.Write(Rotation);
+
+        Name.Serialize(writer);
+
+        writer.Write(Coins);
+
+        writer.Write(Birthday);
+        writer.Write(Age);
+        writer.Write(PlayTime);
+
+        writer.Write(IsUnderage);
+        writer.Write(IsOpenChatEnabled);
+
+        // 2009: ShowMemberNagScreen BEFORE MembershipStatus
+        writer.Write(ShowMemberNagScreen);
+        writer.Write(MembershipStatus);
+
+        writer.Write(ChatCountryId);
+        writer.Write(ChatLanguageId);
+        writer.Write(PreferredLanguage);
+
+        // 2009 unknown header fields (2x Vector4 + 2x int)
+        writer.Write(Vector4.Zero);
+        writer.Write(Vector4.Zero);
+        writer.Write(0);
+        writer.Write(0);
+
+        // Profiles (sub_468DA0 loop) - 2009 format
+        Serialize2009Profiles(writer);
+
+        // ActiveProfileId - ensure it points to a valid profile
+        writer.Write(Profiles.Count > 0 ? ActiveProfileId : 0);
+
+        // ProfileTypes (sub_469640 loop) - complex 2009 format, keep empty
+        writer.Write(0); // count = 0
+
+        // sub_46F430: two lists (Collections/Acquaintances in 2009 format)
+        writer.Write(0); // first list count = 0
+        writer.Write(0); // second list count = 0
+
+        // Gender
+        writer.Write(Gender);
+
+        // Unknown int at this+180
+        writer.Write(0);
+
+        // Items (sub_48A2A0) - 2009 format differs, write empty
+        writer.Write(0); // item count = 0
+        writer.Write(0); // extra int at this+3972
+        writer.Write(0); // extra int at this+3964
+        writer.Write(false); // extra byte at this+3968
+        writer.Write(0); // extra int at this+3976
+        writer.Write(0); // extra int at this+3980
+
+        // sub_48A490 list
+        writer.Write(0); // count = 0
+
+        // sub_44D030 list
+        writer.Write(0); // count = 0
+
+        // sub_469F30 list
+        writer.Write(0); // count = 0
+
+        // Mounts (sub_462420 loop) - 2009 format may differ
+        writer.Write(0); // count = 0
+
+        // ActionBars (sub_546800: just 3 ints, no slot data in this packet)
+        writer.Write(0); // count = 0
+        writer.Write(0); // int v102
+        writer.Write(0); // int v103
+
+        // sub_4661A0 list
+        writer.Write(0); // count = 0
+
+        // sub_4661F0: byte + sub_45AB00 (int count + count*int)
+        writer.Write(false); // byte at this+13456+4
+        writer.Write(0); // int count = 0 (for sub_45AB00)
+
+        // sub_514180 loop count (separate from sub_457B90 below)
+        writer.Write(0); // count = 0
+
+        // sub_457B90 list
+        writer.Write(0); // count = 0
+
+        // Titles (sub_44D140) - 2009 format has conditional 3rd int
+        writer.Write(0); // count = 0
+
+        // Stats: sub_481D80 reads 1 int, then sub_47E3F0 reads another int as its loop count
+        writer.Write(0); // sub_481D80 count
+        writer.Write(0); // sub_47E3F0 count
+
+        // 2009 does not have VipRank, VipIconId, VipTitle
+
+        return writer.Buffer;
+    }
+
+    private void Serialize2009Profiles(PacketWriter writer)
+    {
+        writer.Write(Profiles.Count);
+
+        foreach (var profile in Profiles)
+            Serialize2009Profile(writer, profile);
+    }
+
+    private static void Serialize2009Profile(PacketWriter writer, ClientPcProfile profile)
+    {
+        // sub_461F80 part 1: header fields
+        writer.Write(profile.Id);
+        writer.Write(profile.NameId);
+        writer.Write(profile.DescriptionId);
+        writer.Write(profile.Type);
+        writer.Write(profile.Icon);
+        writer.Write(profile.AbilityBgImageSet);
+        writer.Write(profile.BadgeImageSet);
+        writer.Write(profile.ButtonImageSet);
+        writer.Write(profile.MembersOnly);
+        writer.Write(profile.IsCombat);
+
+        // sub_45A720: ItemClasses
+        writer.Write(profile.ItemClasses.Count);
+        foreach (var (classId, classData) in profile.ItemClasses)
+        {
+            writer.Write(classId);
+            classData.Serialize(writer);
+        }
+
+        // sub_461F80 part 2
+        writer.Write(profile.Unknown11);
+        writer.Write(profile.Unknown12);
+        writer.Write(profile.Unknown13);
+        writer.Write(profile.Unknown14 ? 1 : 0); // 2009 reads as int, not bool
+        writer.Write(profile.Unknown15);
+
+        // sub_461F80 part 3: 17 blocks of 16 bytes each
+        for (int i = 0; i < 17; i++)
+        {
+            writer.Write(0);
+            writer.Write(0);
+            writer.Write(0);
+            writer.Write(0);
+        }
+
+        // sub_457A90: Abilities (2009 AbilitySet has exactly 8 slots)
+        // The client ALWAYS reads 8 abilities - we must write exactly 8
+        writer.Write(8); // ability count (warning if > 8, error if < 8)
+        var abilities = profile.Abilities;
+        for (int i = 0; i < 8; i++)
+        {
+            if (i < abilities.Count)
+            {
+                var ability = abilities[i];
+                writer.Write(ability.Type);
+
+                if (ability.Type == 0)
+                    continue;
+
+                if (ability.Type == 1 || ability.Type == 3)
+                {
+                    writer.Write(ability.Unknown2);
+                    writer.Write(ability.ManaCost);
+                }
+                else if (ability.Type == 2)
+                {
+                    writer.Write(ability.ItemDefinitionId);
+                }
+
+                writer.Write(ability.IconId);
+                writer.Write(ability.NameId);
+                writer.Write(ability.Unknown7);
+                writer.Write(ability.Unknown8);
+                writer.Write(ability.Unknown9);
+                writer.Write(ability.AbilityDefinitionId);
+            }
+            else
+            {
+                // Empty ability slot
+                writer.Write(0); // Type == 0
+            }
+        }
+
+        // sub_43E6B0: AbilityExperiences (same format as 2014)
+        foreach (var exp in profile.AbilityExperiences)
+        {
+            writer.Write(exp.Unknown);
+
+            if (exp.Unknown == 0)
+                break;
+
+            writer.Write(exp.Unknown2);
+            writer.Write(exp.NameId);
+            writer.Write(exp.DescriptionId);
+            writer.Write(exp.IconId);
+            writer.Write(exp.Unknown6);
+            writer.Write(exp.Level);
+            writer.Write(exp.Progress);
+            writer.Write(exp.TotalForLevel);
+            writer.Write(exp.Unknown10);
+        }
+
+        // Terminate experiences with a zero int (if not already terminated)
+        if (profile.AbilityExperiences.Count == 0 || profile.AbilityExperiences[^1].Unknown != 0)
+            writer.Write(0);
     }
 }

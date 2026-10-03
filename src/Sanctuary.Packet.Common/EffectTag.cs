@@ -6,12 +6,11 @@ public class EffectTag : ISerializableType
 {
     public int InstanceId;
 
-    public int DefinitionId;
-
+    public int Unknown2;
     public int Unknown3;
 
-    public uint StartTime;
-    public uint StopTime;
+    public ulong StartTime;
+    public ulong Unknown11;
 
     public long Unknown9;
     public bool Unknown8;
@@ -22,9 +21,7 @@ public class EffectTag : ISerializableType
     public int Duration;
 
     public int Unknown12;
-
-    public int CompositeEffectId;
-
+    public int Unknown13;
     public long Unknown14;
     public int Unknown15;
     public int Unknown16;
@@ -36,8 +33,7 @@ public class EffectTag : ISerializableType
     {
         writer.Write(InstanceId);
 
-        writer.Write(DefinitionId);
-
+        writer.Write(Unknown2);
         writer.Write(Unknown3);
         writer.Write(Unknown4);
         writer.Write(Unknown5);
@@ -49,12 +45,10 @@ public class EffectTag : ISerializableType
         writer.Write(Unknown9);
 
         writer.Write(StartTime);
-        writer.Write(StopTime);
+        writer.Write(Unknown11);
 
         writer.Write(Unknown12);
-
-        writer.Write(CompositeEffectId);
-
+        writer.Write(Unknown13);
         writer.Write(Unknown14);
         writer.Write(Unknown15);
         writer.Write(Unknown16);

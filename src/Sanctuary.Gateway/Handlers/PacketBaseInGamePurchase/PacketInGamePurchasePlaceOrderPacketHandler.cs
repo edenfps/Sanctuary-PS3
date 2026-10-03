@@ -179,8 +179,6 @@ public static class PacketInGamePurchasePlaceOrderPacketHandler
 
                     clientItem.Serialize(writer);
 
-                    clientItemDefinition.Serialize(writer);
-
                     var clientUpdatePacketItemAdd = new ClientUpdatePacketItemAdd();
 
                     clientUpdatePacketItemAdd.Payload = writer.Buffer;

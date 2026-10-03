@@ -31,8 +31,7 @@ public class PacketLogin : IDeserializable<PacketLogin>
         if (!reader.TryRead(out value.Version))
             return false;
 
-        if (!reader.TryRead(out value.Unknown))
-            return false;
+      
 
         return reader.RemainingLength == 0;
     }

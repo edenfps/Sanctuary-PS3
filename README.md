@@ -1,3 +1,10 @@
+# Sanctuary PC 2009 development branch
+
+This branch contains the server adaptation for the 2009 PC Free Realms client. It includes 2009 protocol handling, gameplay data, asset delivery helpers, and client compatibility scripts. It is a development snapshot; the game client and its original assets are separate.
+
+Based on [Open-Source-Free-Realms/Sanctuary](https://github.com/Open-Source-Free-Realms/Sanctuary) through [edenfps/Sanctuary](https://github.com/edenfps/Sanctuary). The original project README follows.
+
+---
 
 <a id="readme-top"></a>
 <!-- PROJECT SHIELDS -->
@@ -263,3 +270,4 @@ Project Link: [https://github.com/Open-Source-Free-Realms/Sanctuary](https://git
 [product-screenshot]: images/screenshot.jpg
 [CSharp]: https://img.shields.io/badge/csharp-000000?style=for-the-badge&logo=csharp&logoColor=white
 [CSharp-url]: https://dotnet.microsoft.com/en-us/languages/csharp
+

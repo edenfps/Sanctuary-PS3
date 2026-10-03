@@ -65,4 +65,20 @@ public class PointOfInterestDefinition : ISerializableType
 
         writer.Write(Unknown2);
     }
+
+    public void Serialize2009(PacketWriter writer)
+    {
+        writer.Write(Id);
+        writer.Write(NameId);
+        writer.Write(LocationId);
+        writer.Write(Position.X);
+        writer.Write(Position.Y);
+        writer.Write(Position.Z);
+        writer.Write(Heading);
+        writer.Write(IconId);
+        writer.Write(NotificationType);
+        writer.Write(SubNameId);
+        writer.Write(BreadcrumbQuestId);
+        writer.Write(TeleportLocationId);
+    }
 }

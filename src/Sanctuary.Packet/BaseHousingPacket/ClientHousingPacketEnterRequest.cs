@@ -8,7 +8,7 @@ public class ClientHousingPacketEnterRequest : BaseHousingPacket, IDeserializabl
 {
     public new const short OpCode = 19;
 
-    public ulong HouseGuid;
+    public ulong HouseInstanceGuid;
 
     public int Unknown; // Set by EnterPreview
 
@@ -27,7 +27,7 @@ public class ClientHousingPacketEnterRequest : BaseHousingPacket, IDeserializabl
         if (!value.TryRead(ref reader))
             return false;
 
-        if (!reader.TryRead(out value.HouseGuid))
+        if (!reader.TryRead(out value.HouseInstanceGuid))
             return false;
 
         if (!reader.TryRead(out value.Unknown))
